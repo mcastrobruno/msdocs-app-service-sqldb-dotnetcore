@@ -32,7 +32,7 @@ jobs:
       - name: Install dotnet ef
         run: dotnet tool install --global dotnet-ef --version 8.*
       
-      -name: Create migrations bundle
+      - name: Create migrations bundle
         run: dotnet ef migrations bundle --runtime linux-x --output-dir ${{env.DOTNET_ROOT}}/myapp/migrationsbundle
 
       - name: Upload artifact for deployment job
