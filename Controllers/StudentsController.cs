@@ -14,7 +14,7 @@ namespace DotNetCoreSqlDb.Controllers
         private readonly ILogger<StudentsController> _logger;
         private readonly MyDatabaseContext _context;
         private readonly IDistributedCache _cache;
-        private readonly string _TodoItemsCacheKey = "StudentsList";
+        private readonly string _StudentItemsCacheKey = "StudentsList";
 
         public StudentsController(MyDatabaseContext context, IDistributedCache cache, ILogger<StudentsController> logger)
         {
@@ -27,20 +27,20 @@ namespace DotNetCoreSqlDb.Controllers
         // The cache logic is added with the help of GitHub Copilot
         public async Task<IActionResult> Index()
         {
-            var todoItems = await _cache.GetAsync(_TodoItemsCacheKey);
-            if (todoItems != null)
+            var studentItems = await _cache.GetAsync(_StudentItemsCacheKey);
+            if (studentItems != null)
             {
                 _logger.LogInformation("Data from cache.");
-                var todoList = JsonConvert.DeserializeObject<List<Todo>>(Encoding.UTF8.GetString(todoItems));
-                return View(todoList);
+                var studentList = JsonConvert.DeserializeObject<List<Todo>>(Encoding.UTF8.GetString(studentItems));
+                return View(studentList);
             }
             else
             {
                 _logger.LogInformation("Data from database.");
-                var todoList = await _context.Students.ToListAsync();
-                var serializedTodoList = JsonConvert.SerializeObject(todoList);
-                await _cache.SetAsync(_TodoItemsCacheKey, Encoding.UTF8.GetBytes(serializedTodoList));
-                return View(todoList);
+                var studentList = await _context.Students.ToListAsync();
+                var serializedStudentList = JsonConvert.SerializeObject(studentList);
+                await _cache.SetAsync(_StudentItemsCacheKey, Encoding.UTF8.GetBytes(serializedStudentList));
+                return View(studentList);
             }
         }
 
@@ -53,26 +53,26 @@ namespace DotNetCoreSqlDb.Controllers
                 return NotFound();
             }
 
-            var todo = await _cache.GetAsync(GetTodoItemCacheKey(id));
-            if (todo != null)
+            var student = await _cache.GetAsync(GetStudentItemCacheKey(id));
+            if (student != null)
             {
                 _logger.LogInformation("Data from cache.");
-                var todoItem = JsonConvert.DeserializeObject<Todo>(Encoding.UTF8.GetString(todo));
-                return View(todoItem);
+                var studentItem = JsonConvert.DeserializeObject<Student>(Encoding.UTF8.GetString(student));
+                return View(studentItem);
             }
             else
             {
                 _logger.LogInformation("Data from database.");
-                var todoItem = await _context.Students
+                var studentItem = await _context.Students
                     .FirstOrDefaultAsync(m => m.ID == id);
-                if (todoItem == null)
+                if (studentItem == null)
                 {
                     return NotFound();
                 }
 
-                var serializedTodo = JsonConvert.SerializeObject(todoItem);
-                await _cache.SetAsync(GetTodoItemCacheKey(id), Encoding.UTF8.GetBytes(serializedTodo));
-                return View(todoItem);
+                var serializedStudent = JsonConvert.SerializeObject(studentItem);
+                await _cache.SetAsync(GetStudentItemCacheKey(id), Encoding.UTF8.GetBytes(serializedStudent));
+                return View(studentItem);
             }
         }
 
@@ -88,19 +88,19 @@ namespace DotNetCoreSqlDb.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("ID,Description,CreatedDate")] Todo todo)
+        public async Task<IActionResult> Create([Bind("ID,Name,GoogleMeetUrl")] Student student)
         {
             if (ModelState.IsValid)
             {
-                _context.Add(todo);
+                _context.Add(student);
                 await _context.SaveChangesAsync();
 
                 // Clear the todo items cache
-                await _cache.RemoveAsync(_TodoItemsCacheKey);
+                await _cache.RemoveAsync(_StudentItemsCacheKey);
 
                 return RedirectToAction(nameof(Index));
             }
-            return View(todo);
+            return View(student);
         }
 
         // GET: Todos/Edit/5
@@ -112,25 +112,25 @@ namespace DotNetCoreSqlDb.Controllers
                 return NotFound();
             }
 
-            var todo = await _cache.GetAsync(GetTodoItemCacheKey(id));
-            if (todo != null)
+            var student = await _cache.GetAsync(GetStudentItemCacheKey(id));
+            if (student != null)
             {
                 _logger.LogInformation("Data from cache.");
-                var todoItem = JsonConvert.DeserializeObject<Student>(Encoding.UTF8.GetString(todo));
-                return View(todoItem);
+                var studentItem = JsonConvert.DeserializeObject<Student>(Encoding.UTF8.GetString(student));
+                return View(studentItem);
             }
             else
             {
                 _logger.LogInformation("Data from database.");
-                var todoItem = await _context.Students.FindAsync(id);
-                if (todoItem == null)
+                var studentItem = await _context.Students.FindAsync(id);
+                if (studentItem == null)
                 {
                     return NotFound();
                 }
 
-                var serializedTodo = JsonConvert.SerializeObject(todoItem);
-                await _cache.SetAsync(GetTodoItemCacheKey(id), Encoding.UTF8.GetBytes(serializedTodo));
-                return View(todoItem);
+                var serializedStudent = JsonConvert.SerializeObject(studentItem);
+                await _cache.SetAsync(GetStudentItemCacheKey(id), Encoding.UTF8.GetBytes(serializedStudent));
+                return View(studentItem);
             }
         }
 
@@ -140,9 +140,9 @@ namespace DotNetCoreSqlDb.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("ID,Description,CreatedDate")] Student todo)
+        public async Task<IActionResult> Edit(int id, [Bind("ID,Name,GoogleMeetUrl")] Student student)
         {
-            if (id != todo.ID)
+            if (id != student.ID)
             {
                 return NotFound();
             }
@@ -151,16 +151,16 @@ namespace DotNetCoreSqlDb.Controllers
             {
                 try
                 {
-                    _context.Update(todo);
+                    _context.Update(student);
                     await _context.SaveChangesAsync();
 
                     // Clear the todo item and todos list from the cache
-                    await _cache.RemoveAsync(GetTodoItemCacheKey(id));
-                    await _cache.RemoveAsync(_TodoItemsCacheKey);
+                    await _cache.RemoveAsync(GetStudentItemCacheKey(id));
+                    await _cache.RemoveAsync(_StudentItemsCacheKey);
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!TodoExists(todo.ID))
+                    if (!StudentExists(student.ID))
                     {
                         return NotFound();
                     }
@@ -171,7 +171,7 @@ namespace DotNetCoreSqlDb.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
-            return View(todo);
+            return View(student);
         }
 
         // GET: Todos/Delete/5
@@ -183,26 +183,26 @@ namespace DotNetCoreSqlDb.Controllers
                 return NotFound();
             }
 
-            var todo = await _cache.GetAsync(GetTodoItemCacheKey(id));
-            if (todo != null)
+            var student = await _cache.GetAsync(GetStudentItemCacheKey(id));
+            if (student != null)
             {
                 _logger.LogInformation("Data from cache.");
-                var todoItem = JsonConvert.DeserializeObject<Student>(Encoding.UTF8.GetString(todo));
-                return View(todoItem);
+                var studentItem = JsonConvert.DeserializeObject<Student>(Encoding.UTF8.GetString(student));
+                return View(studentItem);
             }
             else
             {
                 _logger.LogInformation("Data from database.");
-                var todoItem = await _context.Students
+                var studentItem = await _context.Students
                     .FirstOrDefaultAsync(m => m.ID == id);
-                if (todoItem == null)
+                if (studentItem == null)
                 {
                     return NotFound();
                 }
 
-                var serializedTodo = JsonConvert.SerializeObject(todoItem);
-                await _cache.SetAsync(GetTodoItemCacheKey(id), Encoding.UTF8.GetBytes(serializedTodo));
-                return View(todoItem);
+                var serializedStudent = JsonConvert.SerializeObject(studentItem);
+                await _cache.SetAsync(GetStudentItemCacheKey(id), Encoding.UTF8.GetBytes(serializedStudent));
+                return View(studentItem);
             }
         }
 
@@ -212,29 +212,29 @@ namespace DotNetCoreSqlDb.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var todo = await _context.Students.FindAsync(id);
-            if (todo != null)
+            var student = await _context.Students.FindAsync(id);
+            if (student != null)
             {
-                _context.Students.Remove(todo);
+                _context.Students.Remove(student);
             }
 
             await _context.SaveChangesAsync();
 
             // Clear the todo item and todos list from the cache
-            await _cache.RemoveAsync(GetTodoItemCacheKey(id));
-            await _cache.RemoveAsync(_TodoItemsCacheKey);
+            await _cache.RemoveAsync(GetStudentItemCacheKey(id));
+            await _cache.RemoveAsync(_StudentItemsCacheKey);
 
             return RedirectToAction(nameof(Index));
         }
 
-        private bool TodoExists(int id)
+        private bool StudentExists(int id)
         {
             return _context.Students.Any(e => e.ID == id);
         }
 
-        private string GetTodoItemCacheKey(int? id)
+        private string GetStudentItemCacheKey(int? id)
         {
-            return $"{_TodoItemsCacheKey}_{id}";
+            return $"{_StudentItemsCacheKey}_{id}";
         }
      }
 }
